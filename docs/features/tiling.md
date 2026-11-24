@@ -26,7 +26,7 @@ Reorder                                                 // tile.reorder
 │   └── Perpendicular move    -> re-orients or creates a mixed split
 └── Pointer drag
     ├── Over a sibling     -> live-previewed swap, applied on mouse-up
-    ├── Near a tile edge   -> nested split
+    ├── Near a tile edge   -> nested split (in the saved layout, even while tiles are temporarily stacked)
     └── Onto another display -> moved to that display's active workspace
 
 Size                                                    // tile.size
@@ -84,7 +84,7 @@ pause, quit, or hotkey loss.
   `closed_window_its_app_keeps_ordered_out_gives_up_its_tile` (an app closes its window by ordering it out),
   `workspace_whose_windows_all_leave_the_screen_keeps_its_tiles` (another Space is showing).
 - Unit (FakeBackend), `src/app/tests/minimums.rs`: a window that refuses its tile width gets a wider
-  tile (middle, last, several at once, and observation-cycle cases); a three-window row that cannot fit stacks two neighbors, and a wider display restores the requested row; Fullscreen Layout ignores minimums. `src/app/tests/stacked_resize.rs`: a resize while a pair is stacked keeps the saved row (issue 197). `src/layout_tree.rs`:
+  tile (middle, last, several at once, and observation-cycle cases); a three-window row that cannot fit stacks two neighbors, and a wider display restores the requested row; Fullscreen Layout ignores minimums. `src/app/tests/stacked_resize.rs`: a resize (issue 197), swap, or drag-nest (with or without a preview) while a pair is stacked never saves the temporary stack; a drag-nest through a fit that only reweights keeps the requested weights; a perpendicular move through a stack saves A above `B | C`; and a drop held on the other stacked tile follows the preview. `src/layout_tree.rs`:
   `fitting_minimums_reaches_into_nested_splits_and_leaves_impossible_splits_alone`.
 - Spacing, `src/spacing/tests.rs`: outer padding and its 320×240 floor; one tile, two columns and a
   nested three-tile split with inner gaps and asymmetric padding (no overlaps, exact point totals);
@@ -110,6 +110,12 @@ pause, quit, or hotkey loss.
   pair is stacked changes only the stack shown, never the saved split. If no pair solves the shortage,
   windows may overlap. A sustained overlap involving a constrained tile appears in `spaceman doctor`
   as `constrained_overlap`.
+- A swap, a drag-nest or a perpendicular move while tiles are temporarily stacked edits the saved
+  layout; the stack is then recomputed from it, so the result shown can differ from the stack the
+  tile was dropped on or moved across. Dropping A on the top edge of C in `| A | B/C |`, stacked
+  only to fit, saves `| B | A/C |`. While dragging, each preview re-lays out the tiles, so a drop
+  near the edge of a temporarily stacked tile can land beside the tile that has moved under the
+  pointer: holding A on B's top edge there also ends as `| B | A/C |`.
 - Some apps (many SwiftUI apps) close a window by ordering it out; the window server keeps
   listing it. When a sibling stays visible and the app had one tile on this workspace, an empty
   Accessibility window list can confirm the close immediately. An inconclusive check gets one
