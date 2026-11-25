@@ -31,6 +31,16 @@ Reorder                                                 // tile.reorder
 ├── Option+Shift+H/J/K/L / ctl move-direction <dir> -> swap/move within the tree
 │   ├── At the workspace edge -> moves to the adjacent display's active workspace, even an empty one
 │   └── Perpendicular move    -> re-orients or creates a mixed split (falls through to the adjacent display if the saved split would not change)
+├── ctl join <dir> (no default hotkey) -> pair with the tile Option+H/J/K/L would focus, across that direction
+│   ├── | A | B | C |, focus C, join left -> | A | B/C |; the pair takes B's share, the space C leaves goes to
+│   │   its former siblings (A and the pair end up as halves)
+│   ├── | A | B/C |, focus C, join left   -> | A/C | B |
+│   ├── Neighbor stacked across the direction -> joins that stack at the facing edge (| A | B/C | D |, D left -> | A | B/C/D |)
+│   ├── Two tiles             -> like flipping the axis, but the two tiles become equal halves
+│   ├── While a minimum-size fit stacks tiles -> only a neighbor that is also one in the saved layout; else nothing
+│   ├── Dwindle               -> the pair, or a stack a tile joins, is user-arranged: closes never re-orient it;
+│   │   a new window splits the focused tile inside it (Columns: joins it as a sibling)
+│   └── No tile that way on the workspace -> nothing (never crosses displays)
 └── Pointer drag (non-destructive previews against drag-start layout; committed only on mouse-up)
     ├── Display left/right edge band -> full-height half-width column on that side (includes outer gap, armed once the pointer has been outside the band; lone tile unchanged; saved layout edited even while temporarily stacked)
     ├── Over a sibling     -> live-previewed swap, applied on mouse-up
@@ -63,7 +73,7 @@ Spacing                                                 // tile.spacing
 ```ts
 Keyboard: Option+H/J/K/L, Option+Shift+H/J/K/L, Option+`, Option+-, Option+=, Option+/
 Pointer:  drag a managed window (reorder/nest/move display), drag its edge (resize)
-CLI:      spaceman ctl focus | move-direction | resize shrink|grow|width|height | balance | layout | retile
+CLI:      spaceman ctl focus | move-direction | join | resize shrink|grow|width|height | balance | layout | retile
 Shortcut: [shortcuts.bindings] can bind any of those, e.g. "ctrl+alt+w" = "resize width 1200"
 Settings: Settings › Layout -> New windows (Dwindle | Columns), Window gaps (Customize separately: Between windows, Screen edges, Top/Bottom/Left/Right edge), Single-window width
 Config:   spaceman config set layout dwindle|columns; spaceman config set gaps.inner|gaps.outer|gaps.top|gaps.bottom|gaps.left|gaps.right|single_window_max_width <points>
@@ -84,7 +94,21 @@ pause, quit, or hotkey loss.
   `reorder_moves_to_the_adjacent_display_at_a_tile_boundary`,
   `reorder_moves_to_an_empty_workspace_on_the_adjacent_display` (issue 119),
   `perpendicular_reorder_creates_a_mixed_split_for_three_windows`,
+  `join_left_stacks_the_focused_tile_under_its_left_neighbor` (issue 250; `src/app/tests/join.rs`
+  also covers join right, join up/down on a vertical root, pairing beside a stack, joining a stack
+  or row at its facing edge whichever stacked tile is the neighbor, a new window after a join
+  (Columns and Dwindle), a state reload, tiles a minimum-size fit stacks (three and two tiles, a tile against
+  a column, a column above a tile, and a tile under a column) and a join under a fit onto either
+  tile of a stack, no neighbor, one tile, no display crossing, Fullscreen Layout, floating
+  focus, and a join right after Option+L while that focus is in flight
+  (`join_acts_on_an_in_flight_focus_request`) or has timed out
+  (`join_falls_back_to_the_reported_focus_after_the_focus_timeout`)),
   `layout_toggle_repartitions_and_persists_the_focused_workspace`.
+  `src/app/tests/join_dwindle.rs` joins layouts that windows opened one by one built: under
+  default Dwindle a joined pair stays stacked across a restart and a close and when a sibling
+  floats, a stack a tile joins stays stacked when a sibling closes, a new window splits the
+  focused tile inside the pair, and joining the only other tile keeps two rows as a window comes
+  and goes; under Columns a tile joins a stack at its facing edge.
 - Engine and layout tree: `dwindle_landscape_splits_one_through_four_windows`,
   `dwindle_portrait_splits_vertically_first_then_alternates`,
   `dwindle_splits_focused_anchor_and_collapses_on_close`,
@@ -97,6 +121,20 @@ pause, quit, or hotkey loss.
   live config reload between Dwindle and Columns, cross-workspace moves, axis toggle, and Fullscreen Layout;
   `resize_to_*` in `src/layout_tree/tests.rs` cover the nearest split on each axis, proportional
   sharing, recursive minimums, and lone tiles.
+- Join, `src/layout_tree/join_tests.rs`: `join_nests_the_tile_across_the_direction_in_reading_order`,
+  `join_into_a_split_across_the_direction_adds_a_sibling_instead_of_nesting`,
+  `joining_the_only_other_tile_turns_the_root_across`,
+  `a_join_pair_keeps_the_neighbors_share_and_leaves_other_tiles_alone`,
+  `joining_a_stack_adds_at_the_edge_facing_the_tile`, `a_join_pair_takes_the_neighbors_pixel_weight`,
+  `joining_two_resized_tiles_gives_equal_halves`,
+  `join_leaves_tiles_already_together_across_the_direction_alone`,
+  `a_join_pair_keeps_its_axis_when_dwindle_re_orients_after_a_close`,
+  `a_dwindle_stack_a_tile_joins_keeps_its_axis_when_a_sibling_closes`,
+  `join_pairs_with_a_neighbor_whose_own_split_runs_along_the_direction`,
+  `join_leaves_the_dwindle_split_it_vacates_as_it_was`; `src/runtime.rs`
+  `join_commits_the_layout_and_needs_a_tiled_target` and
+  `join_during_a_regrouping_fit_edits_only_the_requested_layout` cover `join`; `src/hotkeys.rs`
+  `a_join_binding_registers_join_without_a_built_in_chord` covers its binding.
 - Unit (FakeBackend), `src/app/tests/three_display.rs` and `src/navigation.rs`: three-display
   directional focus from an empty workspace (parked window reported at corner/held-up or no focus,
   #355) and from top/bottom tiles of tall portrait side displays that do not overlap the middle
@@ -179,7 +217,8 @@ pause, quit, or hotkey loss.
   If the requested split cannot fit, Spaceman tries grouping one adjacent pair of root children
   on the other axis. It checks both width and height and keeps window order. Automatic fits
   are temporary; the requested layout returns when it fits again. A resize or balance while a
-  pair is stacked changes only the stack shown, never the saved split. If no pair solves the shortage,
+  pair is stacked changes only the stack shown, never the saved split; a join changes the saved
+  split, never the temporary stack. If no pair solves the shortage,
   windows may overlap. A sustained overlap involving a constrained tile appears in `spaceman doctor`
   as `constrained_overlap`.
 - A swap, a drag-nest, a display-edge column drop, or a perpendicular move while tiles are
@@ -198,8 +237,14 @@ pause, quit, or hotkey loss.
   period: macOS confirms it, so the siblings reflow at once, and the window comes back as a
   new tile at the end of the layout. While nothing on the display is observed (another macOS Space
   is showing), tiles are kept.
-- `balance` and `resize width|height` have no default hotkey; bind them in
+- `balance`, `resize width|height`, and `join` have no default hotkey; bind them in
   `[shortcuts.bindings]` or run them from the CLI.
+- A join pair keeps its neighbor's share even when it lands in a split on the same axis: rows
+  `A / (B|C)` with C joining left give A above B above C at one half and two quarters, and
+  `balance` evens only the immediate split, so it leaves them that way.
+- Join doesn't re-orient the split the tile leaves, as after a move or drag; Dwindle re-picks its
+  direction only when a later close reshapes the space around it: `| A | B/(C|D) |` with B joining
+  left gives `| A/B | C | D |`, C and D narrow columns, where closing B would have stacked them.
 - With gaps, a drop that lands in the gap between two tiles misses both and leaves the layout as it
   was. The Workspace HUD's layout previews stay schematic and ignore spacing.
 - `settings.gaps.outer` is a config shorthand only: the runtime and `config show` get four resolved

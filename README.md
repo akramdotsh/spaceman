@@ -193,6 +193,7 @@ spaceman ctl layout
 spaceman ctl float
 spaceman ctl pin
 spaceman ctl balance
+spaceman ctl join left
 spaceman ctl pause
 spaceman ctl resume
 ```

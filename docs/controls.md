@@ -62,8 +62,8 @@ Command-backtick continues to use macOS's same-application window cycle, and Spa
 resulting focus. Press `Option+Shift+F` again to restore the unchanged split layout. Fullscreen Layout
 and its active tile survive workspace switches, native-tab physical-window replacement, and Spaceman
 restarts. `Option+/` exits Fullscreen Layout, toggles the preserved split axis, and immediately applies
-the resulting normal layout. Keyboard resize (including `resize width|height`), balance, and tile
-reordering require leaving Fullscreen Layout first. Pointer dragging and resizing are ignored while the mode is active. Floating windows are
+the resulting normal layout. Keyboard resize (including `resize width|height`), balance, tile reordering,
+and joining require leaving Fullscreen Layout first. Pointer dragging and resizing are ignored while the mode is active. Floating windows are
 not expanded. Removing or moving away the workspace's final tiled window exits Fullscreen Layout.
 
 `Option+Shift+Space` floats the focused window: it leaves the tiles, keeps its exact frame and
@@ -85,6 +85,27 @@ crossing a sibling or leaving a drop zone restores the preview and never leaves 
 behind. Releasing where the last preview was shown commits that preview. A drag or resize that ends
 without a mouse-up commit (pausing while the button is held, or a mouse-up whose window frame could
 not be read) puts the siblings back where the saved layout has them.
+
+`spaceman ctl join <left|down|up|right>` joins the focused tile with the tile `Option+H/J/K/L` would
+focus that way, in a split across that direction. Joining is pairwise: the neighbor's tile becomes
+the pair, in reading order; the pair takes the neighbor's share, and the space the focused tile
+leaves goes to its former siblings. With `| A | B | C |` and C focused, `join left` gives
+`| A | B/C |` (B above C); `join right` from A gives A above B; and from `| A | B/C |`, C joining
+left gives `| A/C | B |`. When the neighbor is already stacked across that direction with tiles
+other than the focused one, the focused tile joins that stack at the edge facing it instead: from
+`| A | B/C | D |`, D joining left gives `| A | B/C/D |`. With only two tiles, joining is like
+flipping the axis with `Option+/`, but the two tiles become equal halves. While tiles are
+temporarily stacked because their windows need more room, join acts only on a neighbor that is
+also next to the focused tile that way in the saved layout, and otherwise changes nothing. New
+windows opened while a joined tile is focused land in its split: Columns adds them to it, and
+Dwindle splits the focused tile along its longer side. A joined split counts as arranged by you, so
+Dwindle never re-orients it when a window closes. Join doesn't re-orient the split the tile
+leaves, as after a move or drag; Dwindle re-picks its direction only when a later close reshapes
+the space around it: under Dwindle, `| A | B/(C|D) |` with B joining left gives `| A/B | C | D |`
+with C and D as narrow columns. With no tile that way on the same
+workspace, `join` does nothing; unlike a move, it never crosses to another display. It has no
+default shortcut; bind one in `[shortcuts.bindings]` (for example `"ctrl+alt+shift+h" = "join left"`) or in
+Settings › Shortcuts.
 
 While the worker is busy, keyboard commands and completed pointer gestures are queued in arrival
 order. Repeated relative commands (resize, focus, move, and toggles) are not discarded. The queue holds
@@ -202,6 +223,7 @@ spaceman ctl focus left
 spaceman ctl focus next
 spaceman ctl focus prev
 spaceman ctl move-direction right
+spaceman ctl join left
 spaceman ctl layout
 spaceman ctl fullscreen
 spaceman ctl float

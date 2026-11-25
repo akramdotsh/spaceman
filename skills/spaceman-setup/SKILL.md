@@ -76,7 +76,8 @@ ln -sf "/Applications/Spaceman.app/Contents/MacOS/spaceman" "$HOME/.local/bin/sp
 | `Option+Shift+F` | Toggle workspace-wide Fullscreen Layout |
 
 CLI: `spaceman ctl switch 2`, `spaceman ctl move 7`, `spaceman ctl back-and-forth`,
-`spaceman ctl layout`, `spaceman ctl balance`, `spaceman ctl pause`, `spaceman ctl resume`.
+`spaceman ctl layout`, `spaceman ctl balance`, `spaceman ctl join left`, `spaceman ctl pause`,
+`spaceman ctl resume`.
 
 ## Configure
 

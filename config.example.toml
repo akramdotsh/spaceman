@@ -107,6 +107,7 @@ monitor = "main"
 # "alt+shift+ctrl+right" = "focus right"
 # "alt+shift+b" = "balance"
 # "ctrl+alt+w" = "resize width 1200"
+# "ctrl+alt+shift+h" = "join left"
 
 # Labs are experimental features, each off by default. scratchpad = true adds an
 # i3/sway-style Scratchpad: Option+Shift+\ hides the focused window in it and

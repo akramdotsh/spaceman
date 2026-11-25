@@ -8,7 +8,7 @@ described from the user's point of view; [Controls](../controls.md) and
 docs/features/
 ├── README.md               // this index: availability, prerequisites, evidence rules
 ├── workspaces.md           // switch, move, hide/reveal, where new windows go
-├── tiling.md               // split layouts: focus, reorder, drag, resize, balance, axis
+├── tiling.md               // split layouts: focus, reorder, join, drag, resize, balance, axis
 ├── fullscreen-layout.md    // workspace-wide stacked "every window fills the display" mode
 ├── scratchpad.md           // Lab: windows hidden off-screen until summoned
 ├── setup-tour.md           // first run: permission, the suggested arrangement, Try it

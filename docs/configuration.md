@@ -150,7 +150,7 @@ to its default; `settings.workspace_order` is edited in the file instead (see
   side. Closing, moving away, or floating a window collapses its split so the surviving tiles
   re-expand, and any auto-chosen splits inside the space that grew re-orient outermost first to
   match their new longer side while keeping tile order and weights. Splits arranged by the user
-  (`Option+/`, pointer drops, or perpendicular moves) keep their direction across closes and
+  (`Option+/`, pointer drops, perpendicular moves, or `join`) keep their direction across closes and
   restarts; splits loaded from earlier saved state without a recorded origin are treated as
   user-arranged and keep their direction.
 - `"columns"`: each new window joins the focused tile's split as an equal sibling.
@@ -232,6 +232,7 @@ modifier = "alt"                      # optional (default: "alt"); every built-i
 "alt+j" = "layout"                    # replaces the built-in Option+J (focus down)
 "alt+shift+b" = "balance"
 "ctrl+alt+w" = "resize width 1200"
+"ctrl+alt+shift+h" = "join left"      # join has no built-in shortcut
 "alt+h" = "none"                      # unbinds the built-in Option+H
 ```
 
@@ -263,6 +264,7 @@ Commands:
 | `focus next` | Focus the next window in the workspace: tiles in stable order, then floating windows |
 | `focus prev` | Focus the previous window in that same order |
 | `move-direction left\|down\|up\|right` | Move the focused tile in that direction |
+| `join left\|down\|up\|right` | Join the focused tile with its neighbor in that direction (no default chord) |
 | `layout` | Toggle the active layout's root split axis |
 | `fullscreen` | Toggle Fullscreen Layout |
 | `float` | Float the focused window, or tile it again |
