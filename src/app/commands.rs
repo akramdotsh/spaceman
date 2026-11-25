@@ -256,7 +256,7 @@ impl<B: WorkspaceBackend> WorkspaceRuntime<B> {
         Ok(self.status(0, &outputs))
     }
 
-    fn focused_active_workspace(
+    pub(super) fn focused_active_workspace(
         &mut self,
         outputs: &macos::DisplayOutputs,
         cancelled: &AtomicBool,
@@ -368,7 +368,7 @@ impl<B: WorkspaceBackend> WorkspaceRuntime<B> {
         Ok(status)
     }
 
-    fn relayout_persist(
+    pub(super) fn relayout_persist(
         &mut self,
         workspace: WorkspaceId,
         outputs: &macos::DisplayOutputs,

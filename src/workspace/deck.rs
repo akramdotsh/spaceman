@@ -43,7 +43,7 @@ impl DeckMode {
         }
     }
 
-    /// Edits of the split (reorder, resize, balance) only make sense while the
+    /// Edits of the split (reorder, resize, balance, join) only make sense while the
     /// split is what the display shows.
     pub(crate) fn require_split(self, verb: &str) -> Result<(), String> {
         match self {

@@ -315,6 +315,7 @@ fn worker_action(command: &Command) -> WorkerAction {
         Command::FocusNext => WorkerAction::CycleFocus,
         Command::FocusPrev => WorkerAction::CycleFocusPrevious,
         Command::MoveDirection(direction) => WorkerAction::Reorder(*direction),
+        Command::Join(direction) => WorkerAction::Join(*direction),
         Command::Layout => WorkerAction::ToggleLayout,
         Command::Fullscreen => WorkerAction::ToggleFullscreenLayout,
         Command::Float => WorkerAction::ToggleFloat,
@@ -1124,6 +1125,25 @@ mod tests {
             Some(&WorkerAction::MoveFocused(WorkspaceId::TWO))
         );
         assert!(plan.warnings.is_empty(), "{:?}", plan.warnings);
+    }
+
+    #[test]
+    fn a_join_binding_registers_join_without_a_built_in_chord() {
+        let defaults = HotkeyPlan::from_layout(&[], &Shortcuts::default(), &layout()).unwrap();
+        assert!(registration(&defaults, &WorkerAction::Join(Direction::Left)).is_empty());
+
+        let shortcuts = shortcuts(true, r#""ctrl+alt+shift+h" = "join left""#);
+        let plan = HotkeyPlan::from_layout(&[], &shortcuts, &layout()).unwrap();
+
+        let join = registration(&plan, &WorkerAction::Join(Direction::Left));
+        assert_eq!(join.len(), 1);
+        assert_eq!(join[0].key_code, 60);
+        assert_eq!(join[0].modifiers, OPTION_KEY | SHIFT_KEY | CONTROL_KEY);
+        assert_eq!(
+            registration(&plan, &WorkerAction::Reorder(Direction::Left)).len(),
+            1,
+            "Option+Shift+H still moves"
+        );
     }
 
     #[test]

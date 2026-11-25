@@ -9,7 +9,7 @@ fn rect(x: i32, y: i32, width: i32, height: i32) -> crate::Rect {
     }
 }
 
-fn landscape_outputs() -> macos::DisplayOutputs {
+pub(super) fn landscape_outputs() -> macos::DisplayOutputs {
     macos::DisplayOutputs::new(vec![macos::DisplayOutput {
         id: "main-id".into(),
         name: "Main".into(),
@@ -326,7 +326,7 @@ fn dwindle_supports_axis_toggle_and_fullscreen_layout() {
     assert_eq!(rt.backend.frames[&w1], rect(0, 0, 1280, 400));
 }
 
-fn open_dwindle_windows(
+pub(super) fn open_dwindle_windows(
     outputs: &macos::DisplayOutputs,
     ids: &[u32],
     config: Config,
@@ -350,7 +350,7 @@ fn open_dwindle_windows(
     (rt, windows)
 }
 
-fn restart_runtime(
+pub(super) fn restart_runtime(
     rt: &WorkspaceRuntime<FakeBackend>,
     focused: crate::PhysicalWindowId,
     config: Config,

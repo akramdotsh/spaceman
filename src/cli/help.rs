@@ -262,6 +262,7 @@ pub(crate) fn ctl_help(executable: &str) -> String {
         "                             Move focus by direction or cycle through the workspace's windows",
         "  move-direction <left|down|up|right>",
         "                             Reorder the focused window in a direction",
+        "  join <left|down|up|right>  Join the focused window with its neighbor in a direction",
         "  layout                     Toggle the workspace split axis",
         "  fullscreen                 Toggle Fullscreen Layout on the active workspace",
         "  float                      Float the focused window above the tiles, or tile it again",

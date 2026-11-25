@@ -261,6 +261,7 @@ impl<B: WorkspaceBackend> WorkspaceRuntime<B> {
             WorkerAction::CycleFocusPrevious => rt.cycle_focus_previous(outputs, cancelled),
             WorkerAction::Focus(direction) => rt.focus_relative(direction, outputs, cancelled),
             WorkerAction::Reorder(direction) => rt.reorder_focused(direction, outputs, cancelled),
+            WorkerAction::Join(direction) => rt.join_focused(direction, outputs, cancelled),
             WorkerAction::ToggleLayout => rt.toggle_layout(outputs, cancelled),
             WorkerAction::Resize(direction) => rt.resize_focused(direction, outputs, cancelled),
             WorkerAction::ResizeTo(axis, points) => {

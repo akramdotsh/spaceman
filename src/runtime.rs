@@ -406,6 +406,59 @@ impl Engine {
         })
     }
 
+    /// Joins `moved` with `target`, its neighbor in `direction` on display
+    /// (see [`LayoutTree::join`]). While a minimum-size fit regroups the
+    /// tiles, `target` must also be next to `moved` that way in the requested
+    /// layout; tiles only the fit shows side by side are left alone.
+    pub(crate) fn join_window(
+        &mut self,
+        moved: &PhysicalWindowId,
+        target: &PhysicalWindowId,
+        direction: crate::Direction,
+        settings: &Settings,
+    ) -> bool {
+        let Some(target_slot) = self.slot_for_window(target) else {
+            return false;
+        };
+        if self.fit_regroups() && !self.requested_adjacent(moved, target, direction, settings) {
+            return false;
+        }
+        self.edit_requested(moved, |layout, moved| {
+            layout.join(moved, target_slot, direction)
+        })
+    }
+
+    fn fit_regroups(&self) -> bool {
+        self.fit
+            .as_ref()
+            .and_then(|fit| fit.tree.as_ref())
+            .is_some_and(|tree| tree.regroups(&self.layout))
+    }
+
+    /// Whether `target` is next to `window` in `direction` in the requested
+    /// layout's own geometry.
+    fn requested_adjacent(
+        &self,
+        window: &PhysicalWindowId,
+        target: &PhysicalWindowId,
+        direction: crate::Direction,
+        settings: &Settings,
+    ) -> bool {
+        // Navigation reads only windows and frames, so any workspace serves.
+        let tiles = placements_for(&self.layout, &self.model, settings)
+            .into_iter()
+            .filter_map(|placement| {
+                Some(crate::navigation::NavigationTile {
+                    workspace: crate::WorkspaceId::ONE,
+                    window: placement.window?,
+                    frame: placement.frame,
+                    display: None,
+                })
+            })
+            .collect::<Vec<_>>();
+        crate::navigation::is_adjacent(&tiles, window, target, direction)
+    }
+
     pub(crate) fn layout(&self) -> &LayoutTree {
         &self.layout
     }
@@ -747,6 +800,97 @@ mod tests {
             assert!(engine.create_implicit_split(&windows[0], crate::Direction::Up));
             assert_eq!(engine.layout().root_axis(), crate::Axis::Vertical);
         }
+    }
+
+    #[test]
+    fn join_commits_the_layout_and_needs_a_tiled_target() {
+        let mut engine = Engine::default();
+        engine.insert_slot(slot(1));
+        engine.insert_slot(slot(2));
+        let windows = engine.bound_windows();
+        let stranger = slot(9).bound_window().unwrap().clone();
+
+        assert!(!engine.join_window(&windows[1], &stranger, crate::Direction::Left, &settings()));
+        assert!(!engine.join_window(&stranger, &windows[0], crate::Direction::Left, &settings()));
+        assert_eq!(engine.layout().root_axis(), crate::Axis::Horizontal);
+
+        assert!(engine.join_window(
+            &windows[1],
+            &windows[0],
+            crate::Direction::Left,
+            &settings()
+        ));
+        assert_eq!(engine.layout().root_axis(), crate::Axis::Vertical);
+        assert_eq!(engine.bound_windows(), windows);
+    }
+
+    /// Under a minimum-size fit that stacks tiles, a join edits the requested
+    /// layout and never saves the stack; tiles the fit only shows apart are
+    /// already together there, so joining them changes nothing.
+    #[test]
+    fn join_during_a_regrouping_fit_edits_only_the_requested_layout() {
+        let mut engine = Engine::default();
+        for i in 1..=3 {
+            engine.insert_slot(slot(i));
+        }
+        let windows = engine.bound_windows();
+        let output = Rect {
+            width: 1000,
+            height: 800,
+            ..Rect::default()
+        };
+        let settings = Settings::for_output(output);
+        let minimums = windows
+            .iter()
+            .cloned()
+            .zip([(400, 100), (250, 100), (450, 100)])
+            .collect();
+        assert!(engine.fit_minimums(&settings, &minimums));
+        let shown = engine.placements(&settings);
+        assert_eq!(shown[1].frame.x, shown[2].frame.x, "the fit stacks 2 and 3");
+        let requested = |engine: &Engine| {
+            engine
+                .layout()
+                .placements(output)
+                .into_iter()
+                .map(|(slot, frame)| (slot.0 as u32, frame))
+                .collect::<Vec<_>>()
+        };
+        let row = requested(&engine);
+
+        // 3 below 2 on screen, beside it in the requested row.
+        assert!(!engine.join_window(&windows[2], &windows[1], crate::Direction::Up, &settings));
+        assert!(!engine.join_window(&windows[1], &windows[2], crate::Direction::Down, &settings));
+        assert_eq!(requested(&engine), row);
+
+        assert!(engine.join_window(&windows[0], &windows[1], crate::Direction::Right, &settings));
+        let tile = |id: u32, x: i32, y: i32, width: i32, height: i32| {
+            (
+                id,
+                Rect {
+                    x,
+                    y,
+                    width,
+                    height,
+                },
+            )
+        };
+        assert_eq!(
+            requested(&engine),
+            [
+                tile(1, 0, 0, 500, 400),
+                tile(2, 0, 400, 500, 400),
+                tile(3, 500, 0, 500, 800),
+            ]
+        );
+        assert!(
+            engine
+                .model()
+                .workspace
+                .slots
+                .iter()
+                .all(|slot| engine.layout().weight(slot.id) == Some(1))
+        );
     }
 
     fn observation(cycle: u64, window_id: u32) -> NativeObservation {

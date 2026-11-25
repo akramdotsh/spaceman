@@ -216,6 +216,35 @@ fn union_rect(left: Rect, right: Rect) -> Rect {
     }
 }
 
+/// Whether `to` is among the tiles nearest `from` in `direction` that share
+/// its band: one `target` could pick for some sizes of the tiles beyond, such
+/// as either tile of a stacked column beside `from`.
+#[must_use]
+pub fn is_adjacent(
+    tiles: &[NavigationTile],
+    from: &PhysicalWindowId,
+    to: &PhysicalWindowId,
+    direction: Direction,
+) -> bool {
+    let Some(current) = tiles.iter().find(|tile| &tile.window == from) else {
+        return false;
+    };
+    let ahead = tiles
+        .iter()
+        .filter(|tile| &tile.window != from)
+        .map(|tile| (Reach::new(current.frame, tile.frame, direction), tile))
+        .filter(|(reach, _)| {
+            reach.gap >= -EDGE_TOLERANCE && reach.travel > 0 && reach.overlap > EDGE_TOLERANCE
+        })
+        .collect::<Vec<_>>();
+    let Some(nearest) = ahead.iter().map(|(reach, _)| reach.gap.max(0)).min() else {
+        return false;
+    };
+    ahead
+        .iter()
+        .any(|(reach, tile)| &tile.window == to && reach.gap.max(0) <= nearest + EDGE_TOLERANCE)
+}
+
 fn neighbor<'a>(
     candidates: impl Iterator<Item = &'a NavigationTile>,
     from: Rect,
@@ -586,5 +615,25 @@ mod tests {
             "diagonal".parse::<Direction>(),
             Err("invalid direction \"diagonal\"".into())
         );
+    }
+
+    #[test]
+    fn every_tile_of_a_column_beside_is_adjacent_and_only_those() {
+        // | 1 | 2/3 | 4 |, 8 px gaps.
+        let tiles = vec![
+            sized(1, 1, 0, 0, 400, 800),
+            sized(2, 1, 408, 0, 400, 396),
+            sized(3, 1, 408, 404, 400, 396),
+            sized(4, 1, 816, 0, 400, 800),
+        ];
+        let window = |id: u32| &tiles[usize::try_from(id - 1).unwrap()].window;
+        for to in [2, 3] {
+            assert!(is_adjacent(&tiles, window(1), window(to), Direction::Right));
+            assert!(is_adjacent(&tiles, window(4), window(to), Direction::Left));
+        }
+        assert!(!is_adjacent(&tiles, window(1), window(4), Direction::Right));
+        assert!(!is_adjacent(&tiles, window(2), window(3), Direction::Right));
+        assert!(is_adjacent(&tiles, window(2), window(3), Direction::Down));
+        assert!(!is_adjacent(&tiles, window(3), window(2), Direction::Down));
     }
 }

@@ -52,6 +52,7 @@ mod displays;
 mod focus;
 mod hud_event;
 mod input;
+mod join;
 mod journal;
 mod memory;
 mod minimums;
@@ -265,6 +266,8 @@ pub(crate) enum WorkerAction {
     CycleFocusPrevious,
     Focus(Direction),
     Reorder(Direction),
+    /// Nest the focused tile with its neighbor in that direction.
+    Join(Direction),
     ToggleLayout,
     Resize(ResizeDirection),
     /// Resize the focused window to this width (`Horizontal`) or height (`Vertical`) in points.
@@ -311,6 +314,7 @@ impl WorkerAction {
             Self::CycleFocusPrevious => "reverse focus cycle queued".into(),
             Self::Focus(_) => "focus queued".into(),
             Self::Reorder(_) => "directional move queued".into(),
+            Self::Join(_) => "join queued".into(),
             Self::ToggleLayout => "layout toggle queued".into(),
             Self::Resize(_) => "resize queued".into(),
             Self::ResizeTo(..) => "resize queued".into(),

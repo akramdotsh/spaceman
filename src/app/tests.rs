@@ -12,6 +12,8 @@ mod float_regressions;
 mod focus;
 mod fullscreen;
 mod gestures;
+mod join;
+mod join_dwindle;
 mod journal;
 mod layout;
 mod memory;

@@ -143,6 +143,10 @@ pub const LAYOUT_ACTIONS: &[Action] = &[
         "move-direction right",
         letter(true, 'l'),
     ),
+    action("join-left", "Join left", "join left", None),
+    action("join-down", "Join down", "join down", None),
+    action("join-up", "Join up", "join up", None),
+    action("join-right", "Join right", "join right", None),
     action("layout", "Flip split", "layout", letter(false, '/')),
     action("shrink", "Shrink tile", "resize shrink", letter(false, '-')),
     action("grow", "Grow tile", "resize grow", letter(false, '=')),
@@ -341,6 +345,12 @@ mod tests {
             [chord("ctrl+alt+shift+cmd+h")]
         );
         assert!(find("balance").unwrap().chords(&hyper, &[]).is_empty());
+        assert!(find("join-left").unwrap().chords(&hyper, &[]).is_empty());
+        let join = parse("\"ctrl+alt+shift+h\" = \"join left\"");
+        assert_eq!(
+            find("join-left").unwrap().chords(&join, &[]),
+            [chord("ctrl+alt+shift+h")]
+        );
         // An enabled named workspace H takes precedence over built-in Focus left.
         let h = [WorkspaceId::named('H').unwrap()];
         assert!(focus_left.chords(&Shortcuts::default(), &h).is_empty());

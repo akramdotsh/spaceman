@@ -280,6 +280,7 @@ pub enum Command {
     FocusNext,
     FocusPrev,
     MoveDirection(Direction),
+    Join(Direction),
     Layout,
     Fullscreen,
     Float,
@@ -290,7 +291,7 @@ pub enum Command {
     Retile,
 }
 
-pub const COMMAND_USAGE: &str = "switch WORKSPACE|move WORKSPACE [--follow]|move-tab WORKSPACE [--follow]|back-and-forth|move-workspace [next|prev|DISPLAY]|focus DIR|focus next|focus prev|move-direction DIR|layout|fullscreen|float|resize shrink|resize grow|resize width|height POINTS|balance|retile|none";
+pub const COMMAND_USAGE: &str = "switch WORKSPACE|move WORKSPACE [--follow]|move-tab WORKSPACE [--follow]|back-and-forth|move-workspace [next|prev|DISPLAY]|focus DIR|focus next|focus prev|move-direction DIR|join DIR|layout|fullscreen|float|resize shrink|resize grow|resize width|height POINTS|balance|retile|none";
 
 /// `[shortcuts]` as written.
 #[derive(Deserialize)]
@@ -478,6 +479,7 @@ pub fn parse_command(source: &str) -> Result<Option<Command>, String> {
         ["focus", "prev"] => Command::FocusPrev,
         ["focus", direction] => Command::Focus(direction.parse()?),
         ["move-direction", direction] => Command::MoveDirection(direction.parse()?),
+        ["join", direction] => Command::Join(direction.parse()?),
         ["layout"] => Command::Layout,
         ["fullscreen"] => Command::Fullscreen,
         ["float"] => Command::Float,
@@ -535,6 +537,7 @@ impl Command {
             Self::FocusNext => "cycle workspace windows".into(),
             Self::FocusPrev => "cycle workspace windows backward".into(),
             Self::MoveDirection(direction) => format!("move window {direction}"),
+            Self::Join(direction) => format!("join window {direction}"),
             Self::Layout => "toggle layout".into(),
             Self::Fullscreen => "toggle fullscreen layout".into(),
             Self::Float => "toggle floating window".into(),
@@ -639,6 +642,10 @@ mod tests {
                 "move-direction up",
                 Some(Command::MoveDirection(Direction::Up)),
             ),
+            ("join left", Some(Command::Join(Direction::Left))),
+            ("join down", Some(Command::Join(Direction::Down))),
+            ("join up", Some(Command::Join(Direction::Up))),
+            ("join right", Some(Command::Join(Direction::Right))),
             ("layout", Some(Command::Layout)),
             ("float", Some(Command::Float)),
             ("balance", Some(Command::Balance)),
